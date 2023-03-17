@@ -1,7 +1,7 @@
 
 //#include "snake.h"
 
-// gcc `pkg-config gtk+-3.0 --cflags` q_learning.c snake0.c main.c -o Q_test `pkg-config gtk+-3.0 --libs`
+// gcc `pkg-config gtk+-3.0 --cflags` q_learning.c snake.c main.c -o Q_test `pkg-config gtk+-3.0 --libs`
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,31 +10,18 @@
 
 #include "q_learning.h"
 
-// typedef struct List {
-//     int snake;
-//     int apple;
-//     int wall;
-// } q_list;
 
-
-
-//Get game grid
-//Generate Q grid
 
 int **generateNewGameGrid(snake_t *the_snake, apple_t* apple) {
     int size_grid_x = GAME_MAX_X / SEGMENT_WIDTH;
     int size_grid_y = GAME_MAX_Y / SEGMENT_HEIGHT;
 
-    //size_grid_x += 2;
-    //size_grid_y += 2;
-
+    // Add padding to account for walls
     size_grid_x += 2;
     size_grid_y += 2;
 
+    // Create a 2D Matrix to represent the game grid
     int **mtx = (int **) malloc(size_grid_x * sizeof(int *));
-    //for (int i = 0; i < size_grid_x; i++) {
-    //    mtx[i] = (int *) malloc(size_grid_y * sizeof(int));
-    //}
     for (int i = 0; i < size_grid_x; i++) {
         mtx[i] = (int *) malloc(size_grid_y * sizeof(int));
         for (int j = 0; j < size_grid_y; j++) {
@@ -42,6 +29,7 @@ int **generateNewGameGrid(snake_t *the_snake, apple_t* apple) {
         }
     }
 
+    // Add the snake and apple to the 2D Matrix
     add_snake_to_grid(mtx, size_grid_x, size_grid_y, the_snake, apple);
 
     return mtx;
@@ -49,9 +37,7 @@ int **generateNewGameGrid(snake_t *the_snake, apple_t* apple) {
 
 void add_snake_to_grid(int **grid, int size_grid_x, int size_grid_y, snake_t *the_snake, apple_t *apple) {
 
-    //size_grid_x -= 2;
-    //size_grid_y -= 2;
-
+    // Add the walls to the 2D game matrix
     for (int i = 0; i < size_grid_x; i++) {
         grid[i][0] = WALL;
         grid[i][size_grid_y-1] = WALL;
@@ -61,22 +47,25 @@ void add_snake_to_grid(int **grid, int size_grid_x, int size_grid_y, snake_t *th
         grid[size_grid_x-1][i] = WALL;
     }
 
-    seg_t *snake_segment = the_snake->last;
-    int max = 10000;
-    for (int i = 0; i < the_snake->length; i++) {
 
-        //grid[snake_segment->x/SEGMENT_WIDTH][snake_segment->y/SEGMENT_HEIGHT] = SNAKE;
+
+    seg_t *snake_segment = the_snake->last; // Initiate a variable for snake segments
+    int max = 100000;
+    for (int i = 0; i < the_snake->length; i++) { // Loop to climb the snake segment by segment
+
+        // Add snake segment position to the game grid
         // ADD PADDING TO ACCOUNT FOR WALL
         grid[(snake_segment->x/SEGMENT_WIDTH)+1][(snake_segment->y/SEGMENT_HEIGHT)+1] = SNAKE;
 
         if (snake_segment->prev) {
-            snake_segment = snake_segment->prev;
+            snake_segment = snake_segment->prev; // Switch to next segment
         }
         
         max++;
+        if (i > max) break;
     }
 
-    //grid[apple->x/SEGMENT_WIDTH][apple->y/SEGMENT_HEIGHT] = APPLE;
+    // Add the apple to the game grid
     // ADD PADDING TO ACCOUNT FOR WALL
     grid[(apple->x/SEGMENT_WIDTH)+1][(apple->y/SEGMENT_HEIGHT)+1] = APPLE;
 }
@@ -86,10 +75,11 @@ double ***generateNewQGrid() {
     int size_grid_x = GAME_MAX_X / SEGMENT_WIDTH;
     int size_grid_y = GAME_MAX_Y / SEGMENT_HEIGHT;
 
+    // Add padding to account for walls
     size_grid_x += 2;
     size_grid_y += 2;
 
-    // Create 3-dimensional array with dimensions (size_grid_x, size_grid_y, 4)
+    // Create 3-dimensional array for Q learning
     double ***Q = (double***)malloc(size_grid_x * sizeof(double**));
     for (int i = 0; i < size_grid_x; i++) {
         Q[i] = (double**)malloc(size_grid_y * sizeof(double*));
@@ -105,6 +95,8 @@ double ***generateNewQGrid() {
 
 }
 
+// Function to reset the Q matrix after each hit apple 
+//so old values will not interfere with reward
 void reset_Q_matrix(double ***Q, int size_grid_x, int size_grid_y) {
     for (int i = 0; i < size_grid_x; i++) {
         for (int j = 0; j < size_grid_y; j++) {
@@ -115,29 +107,8 @@ void reset_Q_matrix(double ***Q, int size_grid_x, int size_grid_y) {
     }
 }
 
-dir_t generate_move0(int next_act) {
-    //int* move = (int*) malloc(2 * sizeof(int));
-    dir_t move;
-    if (next_act == 0) {
-        //move[0] = 0;
-        //move[1] = 1;
-        move = DOWN;
-    } else if (next_act == 1) {
-        //move[0] = 0;
-        //move[1] = -1;
-        move = UP;
-    } else if (next_act == 2) {
-        //move[0] = -1;
-        //move[1] = 0;
-        move = LEFT;
-    } else if (next_act == 3) {
-        //move[0] = 1;
-        //move[1] = 0;
-        move = RIGHT;
-    }
-    return move;
-}
-
+// Generate a move depending on the best action by Q learning agent
+// move[0] represents x axis and move[1] represents y axis
 int* generate_move(int next_act) {
     int* move = (int*) malloc(2 * sizeof(int));
     if (next_act == 0) {
@@ -156,35 +127,23 @@ int* generate_move(int next_act) {
     return move;
 }
 
+// Action function to determine best action for Q agent
 int* action_fcn(double* q_in, double epsilon, double wind) {
 
-
-    //double epsilon = EPSILON;
-    //double wind = WIND;
-
-    //  for (int j = 0; j < 4; j++) {
-    //     printf("Q: %f \n", q_in[j]);
-    // }
-
-    int* action_and_move = (int*) malloc(4 * sizeof(int));
+    int* action_and_move = (int*) malloc(4 * sizeof(int)); // initialize array for return
     
     int next_act = 0;
     double start_eps = (double) rand() / (double) RAND_MAX;
-    // printf("START EPS: %f \n ", start_eps);
 
-    if (start_eps < epsilon) {
-        next_act = rand() % 4;
-        // printf("RANDOM ");
-    } else {
+    
+    // Epsilon sets if best action or random walk should be takes (random is recommended for learning)
+    if (start_eps < epsilon) { // Generate random action
+        next_act = rand() % 4; 
+    } else { // Select best action as set by the Q matrix
         double max_val = q_in[0];
         int max_index = 0;
         for (int i = 1; i < 4; i++) {
             if (q_in[i] > max_val) {
-
-                // printf("value %f is larger", q_in[i]);
-                // printf("than %f \n", max_val);
-
-
                 max_val = q_in[i];
                 max_index = i;
             }
@@ -192,112 +151,71 @@ int* action_fcn(double* q_in, double epsilon, double wind) {
         next_act = max_index;
     }
 
-    // printf("NEXT ACT: %d \n", next_act);
-
     
-    int *move = generate_move(next_act);
+    int *move = generate_move(next_act); // Get the move array, where move[0] = x axis and move[1] = y axis
     
-    double test_wind = (double) rand() / (double) RAND_MAX;
+    double test_wind = (double) rand() / (double) RAND_MAX; // Check for wind
     if (test_wind <= wind) {
-        int random_act = rand() % 4;
+        int random_act = rand() % 4; // If wind generate random action
         move = generate_move(random_act);
     }
 
     
 
+    // Array to return
     action_and_move[0] = next_act;
     action_and_move[1] = move[0];
     action_and_move[2] = move[1];
 
+    // Free move array after use
     free_arr(move);
 
     return action_and_move;
 }
 
+// Function to free malloc array
 void free_arr(int *arr) {
     free(arr);
 }
 
 
+// Function to update Q grid, simply calls learningQ.
+void updateQGrid(double ***Q_grid, int **game_grid, snake_t *the_snake, int nr_of_games) {
 
-void updateQGrid(double ***Q_grid, int **game_grid, snake_t *the_snake, apple_t *apple, int nr_of_games) {
-
-    //int nr_of_games = 1000;
     learningQ(Q_grid, game_grid, nr_of_games, the_snake);
-    printf("NR OF GAMES: %d \n", nr_of_games);
-    //int move = create_move(Q_grid, the_snake);
-
-    //printf("Line 0:\n");
-    //printf("%f \n", Q_grid[the_snake->head->x / SEGMENT_WIDTH][the_snake->head->y / SEGMENT_HEIGHT][0]);
-    //printf("%f \n", Q_grid[the_snake->head->x / SEGMENT_WIDTH][the_snake->head->y / SEGMENT_HEIGHT][1]);
-    //printf("%f \n", Q_grid[the_snake->head->x / SEGMENT_WIDTH][the_snake->head->y / SEGMENT_HEIGHT][2]);
-    //printf("%f \n", Q_grid[the_snake->head->x / SEGMENT_WIDTH][the_snake->head->y / SEGMENT_HEIGHT][3]);
-
-    
-    //for (int j = 0; j < 50; j++) {
-        //for (int k = 0; k < 4; k++) {
-            //printf("%f ", Q_grid[0][j][k]);
-        //}
-        //printf("\n");
-    //}
-
 
 }
 
 void learningQ(double ***Q_grid, int **game_grid, int nr_of_games, snake_t *the_snake) {
 
-    //# the reward associated with each obstacle
-    //#reward_list = {'fire': -50 , 'cliff': -100, 'goal': 100 , 'start' : -1 , '-' : -1 }
-    //# the status of the game: 1 meaning the game has ended, the agent has hit a terminal state
-    //#status_list = {'fire': -1 , 'cliff': 1, 'goal': 1 , 'start' : -1 , '-' : -1 }
+    // the asgent reward associated with each obstacle
+    int reward_list[] = {1, -100, -10, 200}; //Game, Snake, Wall, Apple
 
-    //struct List reward_list = {-50, -100, 100}; // snake, wall, goal
-    //struct List status_list = {1,1,1};
+    // the status of the game
+    int status_list[] = {-1, 1, 1, 1}; // -1 = non terminal, 1 = terminal
 
-    int reward_list[] = {-1, -80, -40, 100}; //game, snake, wall, apple
-    int status_list[] = {-1, 1, 1, 1}; // die, die, die
-
-    int start_position[] = {the_snake->head->x, the_snake->head->y};
-
-    // printf("NUM OF GAMES: %d \n", nr_of_games);
 
     //nr_of_games = 100;
     for (int i = 0; i < nr_of_games; i++) {
-        //int x_pos = start_position[0];
-        //int y_pos = start_position[1];
 
-        int x_pos = the_snake->head->x / SEGMENT_WIDTH;
+        int x_pos = the_snake->head->x / SEGMENT_WIDTH; // Set start position for the agent, i.e. the start position of the snake
         int y_pos = the_snake->head->y / SEGMENT_HEIGHT;
         game_grid[x_pos+1][y_pos+1] = 0;
 
-        //printf("GAME GRID: %d", game_grid[x_pos][y_pos]);
 
         int max_loop = 0;
         while (status_list[game_grid[x_pos+1][y_pos+1]] != 1) {
-            
 
-            //printf("GAME GRID: %d", game_grid[x_pos][y_pos]);
-
-            //Find out what move to make using  
-            //SET Q_IN
-            //q_in = Q[x_val][y_val]
-
-
-            //move, action = action_fcn(Q[x_val][y_val],epsilon,wind) <- PYTHON CODE
+         
+            // Get next action and move for the agent
             int *action_move = action_fcn(Q_grid[x_pos+1][y_pos+1], EPSILON, WIND);
-            int action = action_move[0];
-            int move[2];
+            int action = action_move[0]; // set the action
+            int move[2]; // initialize array to store the move
             move[0] = action_move[1];
             move[1] = action_move[2];
-
-            // printf("ACTION: %d \n",action);
-            // for (int j = 0; j < 4; j++) {
-            //     printf("%f ", Q_grid[x_pos][y_pos][j]);
-            // }
-            // printf("\n");
             
 
-            // SAVE POSITION
+            // SAVE X and Y POSITION
             int old_x = x_pos;
             int old_y = y_pos;
 
@@ -305,56 +223,21 @@ void learningQ(double ***Q_grid, int **game_grid, int nr_of_games, snake_t *the_
             x_pos = old_x + move[0];
             y_pos = old_y + move[1];
 
-            // printf("new x %d \n", x_pos);
-            // printf("new y %d \n", y_pos);
+            free_arr(action_move); // Free the array returned from action_fcn
 
-            // if (x_pos < 0) x_pos = 0;
-            // if (y_pos < 0) y_pos = 0;
-
-            // if (x_pos > 20) x_pos = 20;
-            // if (y_pos > 20) y_pos = 20;
-
-            // printf("X POS %d \n", x_pos);
-            // printf("Y POS %d \n", y_pos);
-
-            //printf("MOVE 0 %d \n", move[0]);
-            //printf("MOVE 1 %d \n", move[1]);
-
-            //printf("NEW X %d \n", x_pos);
-            //printf("NEW Y %d \n", y_pos);
-
-            free_arr(action_move);
-
-       
-            int status = status_list[game_grid[x_pos+1][y_pos+1]];
-            
-            // printf("STATuS %d \n", status);
-
-            // printf("old X POS %d \n", old_x);
-            // printf(" old Y POS %d \n", old_y);
+            // Get the status regarding the new position
+            int status = status_list[game_grid[x_pos+1][y_pos+1]]; // +1 to account for wall padding 
                 
-            
-
-            // printf("GAME GRID: %d \n", game_grid[x_pos][y_pos]);
-
+            // Get the reward for the new position
             int reward = reward_list[game_grid[x_pos+1][y_pos+1]];
             
-            // printf("REWARD %d \n", reward);
-            // if (reward > 10) {
-            //     printf("HIT GOAL %d \n", reward);
-            //     printf("GAME %d \n", i);
-            // }
-
-      
-
+            // Get the Q value for the previous position
             double old_q_value = Q_grid[old_x+1][old_y+1][action];
-            // printf("OLD Q %f \n", old_q_value);
 
+            // The optimal police is the reward
             int optimal_policy = reward;
-            // printf("OPTIMLA POLICY: %d \n", optimal_policy);
 
-            //if status != 1:optimal_policy = reward + (gamma * np.max(Q[x_val, y_val]))
-
+            // Get the maximum value Q value for the current position
             double max_q = -999999;
             for (int i = 0; i < 4; i++) {
                 double q = Q_grid[x_pos+1][y_pos+1][i];
@@ -363,156 +246,74 @@ void learningQ(double ***Q_grid, int **game_grid, int nr_of_games, snake_t *the_
                 }
             }
 
+            // If current position is not terminal, set optimal policy as a function of reward, gamma and Q value for current position
             if (status != 1) optimal_policy = reward + (GAMMA * max_q);
             
 
-            //new_q_value = (1-alpha) * old_q_value + (alpha * optimal_policy)
+            // Gey the new Q value as a function of alpha, the old Q value and the optimal policy
             double new_q_value = (1-ALPHA) * old_q_value + (ALPHA * optimal_policy);
-            // printf("NEW Q %f \n", new_q_value);
 
           
-
+            // Update the Q grid about the new Q value.
             Q_grid[old_x+1][old_y+1][action] = new_q_value;
-            // printf("Q GRID: %f\n", Q_grid[old_x][old_y][action]);
 
+            // Redundancy
             if (status == 1) break;
-
-            // for (int j = 0; j < 4; j++) {
-            //     printf("%f ", Q_grid[old_x][old_y][j]);
-            // }
-            // printf("\n");
 
 
             max_loop++;
-            if (max_loop > 10000) break;
+            if (max_loop > 1000000) break; // Redundancy, max 1 000 000 loops
 
-            if (i % 100 == 0) {
-                //printf("LOOP %d:\n", max_loop);
-            }
-
-            //if (max_loop > 50) printf("Training 50:\n");
         }
-        // printf("######## max loop event: %d \n", max_loop);
 
-        // if (i % 100 == 0) printf("GAME %d:\n", i);
     }
-
-
 
 }
 
+// Function to create move and control the snake
 int create_move(double ***q_grid, snake_t *the_snake) {
     int x_pos = the_snake->head->x / SEGMENT_WIDTH;
     int y_pos = the_snake->head->y /SEGMENT_HEIGHT;
 
-    int *action_move = action_fcn(q_grid[x_pos+1][y_pos+1],0,0);
+    int *action_move = action_fcn(q_grid[x_pos+1][y_pos+1],0,0); // Action function with 0 epsilon and 0 wind for best possible action
     int action = action_move[0];
     int move[2];
     move[0] = action_move[1];
     move[1] = action_move[2];
 
-    int new_x_pos = x_pos + move[0];
-    int new_y_pos = y_pos + move[1];
+    if (DEBUG_Q) {
 
-    printf("NEW X %d \n", new_x_pos);
-    printf("NEW Y %d \n", new_y_pos);
+        // Set new position as determined by the optimal move
+        int new_x_pos = x_pos + move[0];
+        int new_y_pos = y_pos + move[1];
 
-    free_arr(action_move);
+        printf("NEW X %d \n", new_x_pos);
+        printf("NEW Y %d \n", new_y_pos);
+    }
 
+    free_arr(action_move); // free the action_fcn array
+
+    // Return the new move for the snake as determined by the Q learning matrix
     if (move[0] == 1 && move[1] == 0) {
-        printf("RIGHT\n");
+        if (DEBUG_Q) printf("RIGHT\n");
         return RIGHT;
     } else if (move[0] == -1 && move[1] == 0) {
-        printf("LEFT\n");
+        if (DEBUG_Q) printf("LEFT\n");
         return LEFT;
     } else if (move[0] == 0 && move[1] == 1) {
-        printf("DOWN\n");
+        if (DEBUG_Q) printf("DOWN\n");
         return DOWN;
     } else if (move[0] == 0 && move[1] == -1) {
-        printf("UP\n");
+        if (DEBUG_Q) printf("UP\n");
         return UP;
     } else {
-        printf("Invalid move\n");
+        printf("Invalid Move\n");
     }
-
-    
-
-
 
     return 1;
 
 }
 
-int create_moves0(double ***q_grid, int **game_grid, snake_t *the_snake, apple_t *apple) {
-
-    int status_list[] = {-1, 1, 1, 1};
-    int reward_list[] = {-1, -50, -100, 100};
-
-    int x_pos = the_snake->head->x / SEGMENT_WIDTH;
-    int y_pos = the_snake->head->y /SEGMENT_HEIGHT;
-
-    int max = 0;
-
-    while (status_list[game_grid[x_pos][y_pos]] != 1) {
-
-        int *action_move = action_fcn(q_grid[x_pos][y_pos],0,0);
-        int action = action_move[0];
-        int move[2];
-        move[0] = action_move[1];
-        move[1] = action_move[2];
-
-        //int new_x_pos = x_pos + move[0];
-        //int new_y_pos = y_pos + move[1];
-
-        x_pos = x_pos + move[0];
-        y_pos = y_pos + move[1];
-
-        printf("NEW X %d \n", x_pos);
-        printf("NEW Y %d \n", y_pos);
-
-        printf("APPLE COORDINATES: \n");
-        printf("X %d \n", apple->x);
-        printf("Y %d \n", apple->y);
-
-        if (reward_list[game_grid[x_pos][y_pos]] > 50) {
-            printf("HIT JACKPOT n");
-        }
-
-        free_arr(action_move);
-
-        if (move[0] == 1 && move[1] == 0) {
-            printf("RIGHT\n");
-          
-        } else if (move[0] == -1 && move[1] == 0) {
-            printf("LEFT\n");
-           
-        } else if (move[0] == 0 && move[1] == 1) {
-            printf("DOWN\n");
-           
-        } else if (move[0] == 0 && move[1] == -1) {
-            printf("UP\n");
-            
-        } else {
-            printf("Invalid move\n");
-        }
-
-
-
-        max++;
-        if (max > 100) {
-            printf("HIT MAX n");
-            break;
-        }
-
-    }
-    
-    
-
-
-
-    return 1;
-
-}
 
 
 
@@ -528,9 +329,19 @@ void free_3D_matrix(double ***mtx, int size_grid_x, int size_grid_y) {
     free(mtx);
 }
 
-void free_2d_matrix(double **matrix, int rows) {
+void free_2d_matrix(int **matrix, int rows) {
     for (int i = 0; i < rows; i++) {
         free(matrix[i]);
     }
     free(matrix);
+}
+
+void print_2D_matrix(int **game_grid, int size_grid_x, int size_grid_y) {
+    
+    for(int i = 0; i < size_grid_x; i++) {
+        for(int j = 0; j < size_grid_y; j++) {
+            printf("%d ", game_grid[i][j]);
+        }
+        printf("\n");
+    }
 }

@@ -76,86 +76,18 @@ snake_t *snake_new(int x, int y, int width, int height) {
 // move.
 void snake_append_segment(snake_t *the_snake) {
 
-    // TODO
-
-    //printf("SNAKE BEFORE %s \n", to_str(the_snake));
 
     int tail_x = the_snake->last->x; //Get Tail x and y
     int tail_y = the_snake->last->y;
+
     // Create new segment with tail coordinates and snake tail as prev;
     seg_t *new_segment = segment_new(tail_x,tail_y, the_snake->last);
-
     the_snake->last = new_segment;
 
-
+    // Add length to snake
     the_snake->length = the_snake->length + 1;
 
-    //printf("THIS IS LENGTH: %d\n", the_snake->length);
-    //printf("new seg: %d\n", new_segment->x);
-    //printf("THIS IS LENGTH: %d\n", new_segment->x);
-   
-
-
-
-
-    // dir_t tail_direction = the_snake->dir; 
-
-    // seg_t *tail = the_snake->last;
-    // seg_t *previous = the_snake->last->prev;
-
-    // // ADDING TAIL DIRECTION
-    // int tail_x = tail->x;
-    // int tail_y = tail->y;
-
-    // int x_var = previous->x;
-    // int y_var = previous->y;
-
-    // // CHECKING TAIL DIRECTION IN RELATION TO
-    // // PREVIOUS DIRECTION. aprox.
-    // if (tail_x == x_var) tail_direction = DOWN;
-    // if (tail_y == y_var) tail_direction = RIGHT;
-
-    // // ^^^ONLY IF SNAKE > 4
-    // if (the_snake->length < 4) tail_direction = the_snake->dir; 
-
-
-
-    // // SETTING NEW SEGMENT POS DEPENDING ON DIRECTION
-    // if (tail_direction == RIGHT) x_var = previous->x - the_snake->width;
-    // else if (tail_direction == LEFT) x_var = previous->x + the_snake->width;
-    // else if (tail_direction == DOWN) y_var = previous->y - the_snake->height;
-    // else if (tail_direction == UP) y_var = previous->y + the_snake->height;
-
-    // // GENERATING NEW SEGMENT
-    // seg_t *new_segment = segment_new(x_var, y_var, previous);
-
-    // // PREVIOUS SEGMENT IF TAIL IS NEW SEGMENT; ADDING TO SNAKE
-    // the_snake->last->prev = new_segment;
-
-    // // RESETTING TAIL.
-    // the_snake->last->x = 0;
-    // the_snake->last->y = 0;
-
-    // // COUNTING LENGTH OF SNAKE
-    // bool there_is_segment = true;
-    // int length = 0;
-    // seg_t *segment = the_snake->last;
-
-    // while (there_is_segment) {
-    //     if (!segment) {
-    //         there_is_segment = false;
-    //         break;
-    //     }
-    //     segment = segment->prev;
-    //     if (length > 500) break;
-    //     length++;
-    // }
-
-    // //printf("THIS IS LENGTH: %d\n", i);
-    // // the_snake->length = the_snake->length++;
-    //  the_snake->length = length;
-
-    //return the_snake;
+ 
 }
 
 /*
@@ -167,176 +99,57 @@ static char *seg_to_str(seg_t *segment);
 
 static void shift(snake_t *the_snake, int new_x_head, int new_y_head) {
 
-    // BÄTTRE FUNKTION:
+    int snake_length = the_snake->length;
 
-    // Spara head current position
-    // move head
-    // move tail till previous head position
-    // Tail pekar till next seg, detta next_seg läggs i head som last
+    // GENERATING ARRAY SIZE OF SNAKE LENGTH
+    seg_t *snake_segments[the_snake->length];
 
+    // ADDING EACH SNAKE SEGMENT TO SEGMENT ARRAY
+    // IN REVERSE DIRECTION
+    seg_t *segment = the_snake->last;
+    for (int i = snake_length -1; i >= 0; i--) {
+        snake_segments[i] = segment;
+        segment = segment->prev;
+    }
 
-    // NEW AGAIN
+    int previous_x;
+    int previous_y;
 
-    seg_t *before_tail;
-    if (the_snake->length > 2) before_tail = the_snake->last->prev;
-    else before_tail = the_snake->last;
+    int next_x;
+    int next_y;
 
-    printf("BEFORE TAIL SNAKE: %s\n", to_str(the_snake));
-    printf("BEFORE TAIL: %s\n", seg_to_str(before_tail));
+    // Loop over the snake updating the position of each segment
+    for (int i = 0; i < snake_length ; i++) {
+        // IF SEGMENT IS SNAKE HEAD
+        if (i == 0) {
+            previous_x = snake_segments[i]->x;
+            previous_y = snake_segments[i]->y;
 
-    seg_t *before_head = the_snake->last;
-    int max = 10;
-    for (int i = 0; i < the_snake->length; i++) {
-        if (before_head->prev == the_snake->head) break;
-        else before_head = before_head->prev;
+            snake_segments[i]->x = new_x_head;
+            snake_segments[i]->y = new_y_head;
+        }
+        else {
+            // ELSE SET NEXT POS TO PREVIOUS POS
+            next_x = previous_x;
+            next_y = previous_y;
 
-        if (i > max) {
-            printf("break hit: %d\n", max);
-            break;
+            previous_x = snake_segments[i]->x;
+            previous_y = snake_segments[i]->y;
+
+            snake_segments[i]->x = next_x;
+            snake_segments[i]->y = next_y;
+
         }
     }
 
-
-     printf("BEFORE HEAD SNAKE: %s\n", to_str(the_snake));
-    printf("BEFORE HEAD: %s\n", seg_to_str(before_head));
-
-    // move tail to before head
-    the_snake->last->x = the_snake->head->x;
-    the_snake->last->y = the_snake->head->y;
-    
-
-    printf("SWITCH SNAKE LAST: %s\n", to_str(the_snake));
-    printf("the_snake->last: %s\n", seg_to_str(the_snake->last));
-
-    the_snake->head->x = new_x_head;
-    the_snake->head->y = new_y_head;
-    the_snake->last->prev = the_snake->head;
-
-    printf("AFTER SNAKE NEW HEAD: %s\n", to_str(the_snake));
-    printf("the_snake->head: %s\n", seg_to_str(the_snake->head));
-
-    // set before_head to point to new before head 
-
-
-    before_head->prev = the_snake->last;
-    
-    //printf("SNAKE LAST = BEFIRE TAIL: %s\n", to_str(the_snake));
-    //printf("the_snake->last: %s\n", seg_to_str(the_snake->last));
-     
-    the_snake->last = before_tail;
-    
-     //printf("the snake -> last %d\n", the_snake->length);
-     //printf("SNAKE:2 %s\n", to_str(the_snake));
-
-
-    // NEW AGAIN
-
-    // NEW CODE??
-    // int prev_head_x = the_snake->head->x;
-    // int prev_head_y = the_snake->head->y;
-
-    // the_snake->head->x = new_x_head;
-    // the_snake->head->y = new_y_head;
-    
-    // seg_t *snd_last_seg;
-    // if (the_snake->length > 2) {
-
-    //     snd_last_seg = the_snake->last->prev;
-
-    //    seg_t *before_head = the_snake->last->prev;
-    //     for (int i = 0; i < the_snake->length; i++) {
-    //         if (before_head->prev->x == the_snake->head->x && before_head->prev->y == the_snake->head->y) {
-    //             break;
-    //         } else {
-    //             before_head = before_head->prev;
-    //         }
-    //     }
-
-    //     before_head->prev = the_snake->last;
-
-
-    // } else {
-    //     snd_last_seg = the_snake->last;
-    // }
-
-    // the_snake->last->x = prev_head_x;
-    // the_snake->last->y = prev_head_y;
-
-    // the_snake->last = snd_last_seg;
-    // NEW CODE??
-
-    //printf("Head x 1: %d\n", prev_head_x);
-    //printf("Head x 2: %d\n", new_x_head);
-
-
-
-    // BÄTTRE FUNKTION ^^
-
-    // TODO This is used to move the snake. See Alt1 & 2 above.
-
-    // GÖR EN LISTA MED ALLA SEGMENT POINTERS SEN UPPDATERA LISTA
-    
-
-    // int snake_length = the_snake->length;
-
-    // //GENERATING ARRAY SIZE OF SNAKE LENGTH
-    // seg_t *snake_segments[the_snake->length];
-
-    // // ADDING EACH SNAKE SEGMENT TO SEGMENT ARRAY
-    // // IN REVERSE DIRECTION
-    // seg_t *segment = the_snake->last;
-    // for (int i = snake_length -1; i >= 0; i--) {
-    //     snake_segments[i] = segment;
-    //     segment = segment->prev;
-    // }
-
-    // int previous_x;
-    // int previous_y;
-
-    // int next_x;
-    // int next_y;
-    // for (int i = 0; i < snake_length ; i++) {
-    //     // IF SEGMENT IS SNAKE HEAD
-    //     if (i == 0) {
-    //         previous_x = snake_segments[i]->x;
-    //         previous_y = snake_segments[i]->y;
-
-    //         snake_segments[i]->x = new_x_head;
-    //         snake_segments[i]->y = new_y_head;
-    //     }
-    //     else {
-    //         // ELSE SET NEXT POS TO PREVIOUS POS
-    //         next_x = previous_x;
-    //         next_y = previous_y;
-
-    //         previous_x = snake_segments[i]->x;
-    //         previous_y = snake_segments[i]->y;
-
-    //         snake_segments[i]->x = next_x;
-    //         snake_segments[i]->y = next_y;
-
-    //     }
-    // }
-
-    // 110,100 -> previous;
-    // 120,100.
-
-    // 100,100: <- previous;
 
 }
 
 void snake_move(snake_t *the_snake) {
 
-
-
-    // int new_x_head = 0;
-    // int new_y_head = 0;
-
     int new_x_head = the_snake->head->x;
     int new_y_head = the_snake->head->y;
 
-    // TODO Set new head position
-    // Use width height as the step to move.
 
     // CHANGING THE POSITION OF HEAD
     if (the_snake->dir == RIGHT) new_x_head = the_snake->head->x + the_snake->width;
@@ -344,16 +157,10 @@ void snake_move(snake_t *the_snake) {
     else if (the_snake->dir == DOWN) new_y_head = the_snake->head->y + the_snake->height;
     else if (the_snake->dir == UP) new_y_head= the_snake->head->y - the_snake->height;
 
-    // printf("SNEK:1: SHIFT HEAD %s\n", to_str(the_snake));
 
     // SHIFTING THE SNAKE
     shift(the_snake, new_x_head, new_y_head);
 
-    // printf("SNEK:2: AFTEE SHIFT %s\n", to_str(the_snake));
-
-    // return;
-
-    // Then shift ...
 }
 
 
@@ -388,7 +195,6 @@ void snake_turn(snake_t *the_snake, dir_t dir) {
  *  Else if length > 2 it will collide. Default length is 2.
  */
 bool snake_hit_self(snake_t *the_snake) {
-    // TODO
 
     //FROM REDUNTANT. PROB.
     bool there_is_segment = true;
@@ -448,7 +254,6 @@ bool snake_hit_wall(snake_t *the_snake) {
         hit_wall = true;
     }
 
-    //return false;   // false for now
     return hit_wall;
 }
 
@@ -459,7 +264,7 @@ bool snake_hit_apple(snake_t *the_snake, apple_t *the_apple) {
 
 // ------------ Apple function  --------------------------
 
-apple_t *apple_new() {
+apple_t *apple_new(snake_t *the_snake) {
     apple_t *a_apple = malloc(sizeof(apple_t));
     if (a_apple == NULL) {
         perror("Couldn't create apple, giving up ...");
@@ -469,6 +274,19 @@ apple_t *apple_new() {
     // Make x and y coincide to grid
     int x = SEGMENT_WIDTH * (rand() % (GAME_MAX_X / 10));
     int y = SEGMENT_HEIGHT * (rand() % (GAME_MAX_Y / 10));
+
+    int snake_intersect = apple_snake_intersect(the_snake, x, y); // Check if Apple location hits Snake location
+
+    int max = 0;
+    while (snake_intersect) { // If intersect, create new position until there is no intersect
+        x = SEGMENT_WIDTH * (rand() % (GAME_MAX_X / 10)); 
+        y = SEGMENT_HEIGHT * (rand() % (GAME_MAX_Y / 10));
+
+        snake_intersect = apple_snake_intersect(the_snake, x, y); // Check if Apple location hits Snake location
+
+        max++;
+        if (max > 10000) break; // Redundancy
+    }
 
     a_apple->x = x;
     a_apple->y = y;
@@ -480,6 +298,30 @@ apple_t *apple_new() {
 
 void apple_destroy(apple_t *the_apple) {
     free(the_apple);
+}
+
+int apple_snake_intersect(snake_t *the_snake, int x, int y) {
+
+    // SET SNAKE INTERSECT TO FALSE
+    // int snake_intersect = 0;
+    seg_t *snake_segment = the_snake->last;
+
+    // CLIMB SNAKE TO SEE IF SEGMENT INTERSECT
+    int max = 0;
+    for (int i = 0; i < the_snake->length; i++) {
+
+        if (snake_segment->x == x && snake_segment->y == y) return 1;
+
+        if (snake_segment->prev) {
+            snake_segment = snake_segment->prev;
+        }
+            
+        max++;
+        if (max > 100000) break; // Redundancy
+    }
+
+    return 0;
+
 }
 
 

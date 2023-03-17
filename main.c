@@ -20,7 +20,9 @@
 #include <time.h>
 
 
-#define SPEED 50 // Yes! ORG: 150
+#define SPEED 40 // Yes! ORG: 150
+
+#define Q_ACTIVE 1
 
 // gcc `pkg-config gtk+-3.0 --cflags` snake.c main.c -o out_main `pkg-config gtk+-3.0 --libs`
 
@@ -51,7 +53,7 @@ static snake_t *get_snake(int length) {
 
 static void init() {
     the_snake = get_snake(0);  // Will default have length 2
-    the_apple = apple_new();
+    the_apple = apple_new(the_snake);
 
     Q_mtx = generateNewQGrid();
 }
@@ -113,38 +115,28 @@ static gboolean update(gpointer widget) {
 
     int size_grid_x = GAME_MAX_X / SEGMENT_WIDTH +2;
     int size_grid_y = GAME_MAX_Y / SEGMENT_HEIGHT +2;
-    reset_Q_matrix(Q_mtx, size_grid_x, size_grid_y);
+    //reset_Q_matrix(Q_mtx, size_grid_x, size_grid_y);
 
-    int nr_of_games = 10000;
+    //print_2D_matrix(game_grid, size_grid_x, size_grid_y);
+
+    int nr_of_games = 3000;
+
+    // If new game, there is a new Q matrix and more games are required for agent learning
     if (new_game) {
-        nr_of_games = 10000;
+        nr_of_games = 7000;
         new_game = 0;
-        //updateQGrid(Q_grid, game_grid, the_snake, the_apple, nr_of_games); // LEARN Q GRID
+        
     }
-    updateQGrid(Q_mtx, game_grid, the_snake, the_apple, nr_of_games); // LEARN Q GRID
+    updateQGrid(Q_mtx, game_grid, the_snake, nr_of_games); // LEARN Q GRID
 
-
-    //create_moves0(Q_mtx, game_grid, the_snake, the_apple);
-
-
-    //
-
-    // for (int k = 0; k < GAME_MAX_X / SEGMENT_HEIGHT; k++) {
-    //    printf("Depth %d:\n", k);
-    //    for (int i = 0; i < GAME_MAX_X / SEGMENT_HEIGHT; i++) {
-    //     for (int j = 0; j < 4; j++) {
-    //         printf("%f ", Q_mtx[k][i][j]);
-    //     }
-    //     printf("\n");
-    //     }
-    //     printf("\n");
-    // }
 
     int rows = (GAME_MAX_X / SEGMENT_WIDTH) +2;
     free_2d_matrix(game_grid, rows);
 
     int move = create_move(Q_mtx, the_snake);
-    the_snake->dir = move;
+    if (Q_ACTIVE) {
+        the_snake->dir = move;
+    }
 
     // END OF Q LEARNING CODE
 
@@ -156,7 +148,7 @@ static gboolean update(gpointer widget) {
     if (snake_hit_apple(the_snake, the_apple)) {
         snake_append_segment(the_snake);
         apple_destroy(the_apple);
-        the_apple = apple_new();
+        the_apple = apple_new(the_snake);
         //the_apple->y = 0;
 
         int size_grid_x = GAME_MAX_X / SEGMENT_WIDTH +2;

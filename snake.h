@@ -11,8 +11,8 @@
 #ifndef SNAKE_H
 #define SNAKE_H
 
-#define GAME_MAX_X 200
-#define GAME_MAX_Y 200
+#define GAME_MAX_X 300
+#define GAME_MAX_Y 300
 
 #define SEGMENT_WIDTH 10
 #define SEGMENT_HEIGHT 10
@@ -71,6 +71,9 @@ bool snake_hit_wall(snake_t *the_snake);
 
 // Get a new dynamically allocated apple with random position
 apple_t *apple_new();
+
+// Check is Apple is intersecting with snake
+int apple_snake_intersect(snake_t *the_snake, int x, int y);
 
 // Deallocate apple
 void apple_destroy(apple_t *the_apple);
